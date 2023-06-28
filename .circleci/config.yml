@@ -1,11 +1,9 @@
-
 version: 2.1
 
 orbs:
   azure-cli: circleci/azure-cli@1.1.0
 
 jobs:
-
   integration-athena:
     docker:
       - image: cimg/python:3.9.9
@@ -25,9 +23,9 @@ jobs:
       - run:
           name: "Run Tests - Redshift"
           command: ./run_test.sh redshift
-      - store_artifacts:
-          path: ./logs
-      
+      - store_artifacts: &artifacts-path
+          path: integration_tests/logs
+
   integration-snowflake:
     docker:
       - image: cimg/python:3.9.9
@@ -36,9 +34,8 @@ jobs:
       - run:
           name: "Run Tests - Snowflake"
           command: ./run_test.sh snowflake
-      - store_artifacts:
-          path: ./logs
-          
+      - store_artifacts: *artifacts-path
+
   integration-bigquery:
     environment:
       BIGQUERY_SERVICE_KEY_PATH: "/home/circleci/bigquery-service-key.json"
@@ -52,8 +49,7 @@ jobs:
       - run:
           name: "Run Tests - BigQuery"
           command: ./run_test.sh bigquery
-      - store_artifacts:
-          path: ./logs
+      - store_artifacts: *artifacts-path
 
   integration-databricks:
     environment:
@@ -69,8 +65,7 @@ jobs:
       - run:
           name: "Run Tests - Databricks"
           command: ./run_test.sh databricks
-      - store_artifacts:
-          path: ./logs
+      - store_artifacts: *artifacts-path
 
   # DISABLED FOR NOW
   integration-synapse:
@@ -113,17 +108,26 @@ jobs:
       - store_artifacts:
           path: ./logs
 
-
 workflows:
   version: 2
   test-all:
     jobs:
-      - integration-redshift
-      - integration-snowflake
-      - integration-bigquery
-      - integration-databricks
+      - integration-redshift:
+          context: profile-redshift
+      - integration-snowflake:
+          context: profile-snowflake
+      - integration-bigquery:
+          context: profile-bigquery
+      - integration-databricks:
+          context:
+            - aws-credentials
+            - profile-databricks
       - integration-athena
-      #- integration-synapse
+          context: profile-athena
+
+      #- integration-synapse:
+      #    context: profile-synapse
       #- integration-azuresql:
+      #    context: profile-azure
       #    requires:
       #      - integration-synapse
